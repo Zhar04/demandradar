@@ -1,0 +1,42 @@
+{% extends "base.html" %}
+{% block title %}DemandRadar — рефералы{% endblock %}
+{% block content %}
+<h1>Недвижимость и реферальный канал (Модуль A)</h1>
+<p class="muted">Точечный сбор: <code>python -m demandradar --add-listing &lt;url&gt;</code>.
+Начисление считается только от РЕАЛЬНО закрытой сделки: сумма × %.</p>
+
+<div class="cards">
+  <div class="card"><div class="num">{{ contacts | length }}</div><div class="lbl">объектов/партнёров</div></div>
+  <div class="card"><div class="num">{{ "{:,.0f}".format(total_accrued).replace(",", " ") }}</div><div class="lbl">начислено, ₸</div></div>
+</div>
+
+<table style="margin-top:16px">
+  <tr><th>Объект</th><th>Город</th><th>Владелец / телефон</th><th>Статус партнёра</th>
+      <th>Лид (dedup_key)</th><th>Сделка, ₸</th><th>%</th><th>Начислено, ₸</th></tr>
+  {% for c in contacts %}
+  <tr>
+    <td><a href="{{ c.url }}" target="_blank" rel="noopener">{{ c.object_type or "объект" }}</a>
+        <div class="muted">{{ c.deal_type or "" }}{% if c.area_m2 %} · {{ c.area_m2 }} м²{% endif %}
+        {% if c.price %} · {{ "{:,.0f}".format(c.price).replace(",", " ") }} ₸{% endif %}</div></td>
+    <td>{{ c.city or "—" }}</td>
+    <td>{{ [c.owner_name, c.phone] | select | join(" · ") or "—" }}</td>
+    <td colspan="4">
+      <form method="post" action="/referrals/{{ c.id }}/update" class="filters" style="margin:0">
+        <select name="ref_status">
+          {% for st in ref_statuses %}
+          <option value="{{ st.value }}" {{ "selected" if c.ref_status == st }}>{{ ref_titles[st] }}</option>
+          {% endfor %}
+        </select>
+        <input type="text" name="lead_signal_key" placeholder="dedup_key лида" value="{{ c.lead_signal_key or '' }}" size="18">
+        <input type="text" name="deal_amount" placeholder="сумма сделки" value="{{ c.deal_amount or '' }}" size="10">
+        <input type="text" name="referral_pct" placeholder="%" value="{{ c.referral_pct or '' }}" size="4">
+        <button type="submit">Сохранить</button>
+      </form>
+    </td>
+    <td>{{ "{:,.0f}".format(c.referral_amount).replace(",", " ") if c.referral_amount else "—" }}</td>
+  </tr>
+  {% else %}
+  <tr><td colspan="8" class="muted">Пока пусто. Добавь объявление: <code>--add-listing &lt;url&gt;</code></td></tr>
+  {% endfor %}
+</table>
+{% endblock %}

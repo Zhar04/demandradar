@@ -157,6 +157,70 @@ def create_app(settings: Settings) -> FastAPI:
         cards = build_profiles(SignalRepository(db), settings.watchlist)
         return templates.TemplateResponse(request, "watchlist.html", {"cards": cards})
 
+    # -- МОДУЛЬ A: рефералы ------------------------------------------------------
+
+    @app.get("/referrals")
+    def referrals_page(request: Request, db: Database = Depends(get_db)):
+        from demandradar.realestate.module import REF_STATUS_TITLES, RealEstateRepository, RefStatus
+
+        contacts = RealEstateRepository(db).list_all()
+        total_accrued = sum(c.referral_amount or 0 for c in contacts)
+        return templates.TemplateResponse(request, "referrals.html", {
+            "contacts": contacts,
+            "ref_statuses": list(RefStatus),
+            "ref_titles": REF_STATUS_TITLES,
+            "total_accrued": total_accrued,
+        })
+
+    @app.post("/referrals/{contact_id}/update")
+    def referral_update(
+        contact_id: int,
+        ref_status: str = Form(""),
+        lead_signal_key: str = Form(""),
+        deal_amount: str = Form(""),
+        referral_pct: str = Form(""),
+        db: Database = Depends(get_db),
+    ):
+        from demandradar.realestate.module import RealEstateRepository, RefStatus
+
+        repo = RealEstateRepository(db)
+        repo.update_referral(
+            contact_id,
+            ref_status=RefStatus(ref_status) if ref_status else None,
+            lead_signal_key=lead_signal_key or None,
+            deal_amount=float(deal_amount) if deal_amount else None,
+            referral_pct=float(referral_pct) if referral_pct else None,
+        )
+        return RedirectResponse(url="/referrals", status_code=303)
+
+    # -- очередь обзвона -----------------------------------------------------------
+
+    @app.get("/callqueue.csv")
+    def call_queue_csv(db: Database = Depends(get_db)):
+        repo = SignalRepository(db)
+        items = [
+            s for s in repo.list_filtered(order="score", limit=500)
+            if s.status in (SignalStatus.NEW, SignalStatus.IN_WORK) and s.contacts
+        ]
+        buffer = io.StringIO()
+        writer = csv.writer(buffer, delimiter=";")
+        writer.writerow(["score", "заголовок", "категория", "заказчик", "телефон", "email",
+                         "контактное лицо", "регион", "бюджет", "срок", "ссылка"])
+        for s in items:
+            contact = next((c for c in s.contacts if c.phone or c.email), s.contacts[0])
+            writer.writerow([
+                s.score, s.title, CATEGORY_TITLES.get(s.category.value, s.category.value),
+                s.customer_name or "", contact.phone or "", contact.email or "",
+                contact.name or "", s.region or "", s.budget or "",
+                s.deadline.strftime("%d.%m.%Y") if s.deadline else "", s.url,
+            ])
+        csv_bytes = ("﻿" + buffer.getvalue()).encode("utf-8")
+        return Response(
+            content=csv_bytes,
+            media_type="text/csv; charset=utf-8",
+            headers={"Content-Disposition": 'attachment; filename="call_queue.csv"'},
+        )
+
     # -- отчёт ------------------------------------------------------------------
 
     @app.get("/report")

@@ -8,3 +8,4 @@ from demandradar.connectors.hh import connector as _hh  # noqa: F401
 from demandradar.connectors.mitwork import connector as _mitwork  # noqa: F401
 from demandradar.connectors.mpkz import connector as _mpkz  # noqa: F401
 from demandradar.connectors.news_rss import connector as _news_rss  # noqa: F401
+from demandradar.connectors.wordstat import connector as _wordstat  # noqa: F401

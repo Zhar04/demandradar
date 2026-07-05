@@ -1,0 +1,39 @@
+[
+  {
+    "query": "кровати оптом",
+    "region": "Казахстан",
+    "regionId": 159,
+    "dynamics": [
+      { "period": "2026-04", "count": 510 },
+      { "period": "2026-05", "count": 540 },
+      { "period": "2026-06", "count": 890 }
+    ]
+  },
+  {
+    "query": "стеллажи для склада",
+    "region": "г. Алматы",
+    "regionId": 162,
+    "dynamics": [
+      { "period": "2026-05", "count": 340 },
+      { "period": "2026-06", "count": 470 }
+    ]
+  },
+  {
+    "query": "витрины для аптеки",
+    "region": "Казахстан",
+    "regionId": 159,
+    "dynamics": [
+      { "period": "2026-05", "count": 150 },
+      { "period": "2026-06", "count": 158 }
+    ]
+  },
+  {
+    "query": "мдф панели оптом",
+    "region": "Казахстан",
+    "regionId": 159,
+    "dynamics": [
+      { "period": "2026-05", "count": 60 },
+      { "period": "2026-06", "count": 95 }
+    ]
+  }
+]

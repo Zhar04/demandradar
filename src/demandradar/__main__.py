@@ -45,6 +45,13 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--connector", help="запустить только указанный коннектор")
     parser.add_argument("--backfill", type=int, metavar="N", help="собрать за последние N дней (игнорируя курсор)")
     parser.add_argument("--db", type=Path, help="переопределить путь к БД")
+    # МОДУЛЬ A: точечный разбор объявления недвижимости (по ссылке, не массово)
+    parser.add_argument("--add-listing", metavar="URL", help="разобрать объявление недвижимости по ссылке (Модуль A)")
+    parser.add_argument("--from-file", type=Path, metavar="HTML", help="с --add-listing: взять HTML из файла (офлайн)")
+    # Точечная рассылка: черновик по умолчанию, отправка только с --confirm
+    parser.add_argument("--outreach", metavar="DEDUP_KEY", help="сформировать письмо по сигналу")
+    parser.add_argument("--to", metavar="EMAIL", help="получатель для --outreach")
+    parser.add_argument("--confirm", action="store_true", help="действительно отправить (иначе черновик)")
     args = parser.parse_args(argv)
 
     settings = load_settings()
@@ -77,6 +84,58 @@ def main(argv: list[str] | None = None) -> int:
             dry_run=args.dry_run,
         )
         return 0 if notifier.send_text(text) else 1
+
+    if args.add_listing:
+        from demandradar.net.http import Fetcher
+        from demandradar.realestate.module import RealEstateRepository, parse_listing
+        from demandradar.storage.db import Database
+
+        if args.from_file:
+            html = args.from_file.read_text(encoding="utf-8")
+        else:
+            with Fetcher() as fetcher:
+                response = fetcher.get(args.add_listing)
+                response.raise_for_status()
+                html = response.text
+        contact = parse_listing(html, args.add_listing)
+        with Database(settings.db_path) as db:
+            db.migrate()
+            contact_id = RealEstateRepository(db).add(contact)
+        print(f"Сохранено (id={contact_id}): {contact.object_type or 'объект'} · "
+              f"{contact.city or '—'} · {contact.deal_type or '—'} · "
+              f"{contact.phone or 'телефон не найден — добавь вручную в дашборде'}")
+        return 0
+
+    if args.outreach:
+        from demandradar.notify.outreach import OutreachService, build_signal_draft
+        from demandradar.storage.db import Database
+        from demandradar.storage.repo import SignalRepository
+
+        if not args.to:
+            parser.error("--outreach требует --to EMAIL")
+        with Database(settings.db_path) as db:
+            db.migrate()
+            signal = SignalRepository(db).get(args.outreach)
+            if signal is None:
+                print(f"Сигнал {args.outreach!r} не найден")
+                return 1
+            subject, body = build_signal_draft(signal)
+            service = OutreachService(
+                db,
+                smtp_host=settings.smtp_host, smtp_port=settings.smtp_port,
+                smtp_user=settings.smtp_user, smtp_password=settings.smtp_password,
+                smtp_from=settings.smtp_from,
+            )
+            status = service.send_email(
+                to=args.to, subject=subject, body=body,
+                signal_key=args.outreach, confirm=args.confirm,
+            )
+        print(f"--- {subject} ---\n{body}\n--- статус: {status} ---")
+        if status == "draft" and args.confirm:
+            print("SMTP не настроен (.env SMTP_*) — сохранено черновиком.")
+        elif status == "draft":
+            print("Черновик залогирован. Для отправки добавь --confirm.")
+        return 0
 
     if not args.once:
         parser.error("укажите режим: --once, --serve или --digest (демон появится на Этапе 7)")

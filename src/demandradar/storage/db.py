@@ -71,6 +71,41 @@ MIGRATIONS: list[str] = [
         fetched_at    TEXT NOT NULL
     );
     """,
+    # v3: МОДУЛЬ A (недвижимость/рефералы) + лог точечной рассылки
+    """
+    CREATE TABLE real_estate_contacts (
+        id            INTEGER PRIMARY KEY AUTOINCREMENT,
+        url           TEXT NOT NULL UNIQUE,
+        object_type   TEXT,                          -- магазин/склад/помещение...
+        deal_type     TEXT,                          -- аренда | продажа
+        area_m2       REAL,
+        price         REAL,
+        city          TEXT,
+        district      TEXT,
+        owner_name    TEXT,
+        phone         TEXT,
+        listed_at     TEXT,
+        added_at      TEXT NOT NULL,
+        source_status TEXT NOT NULL DEFAULT 'manual', -- точечный сбор по ссылке
+        -- реферальная связка: партнёр -> лид -> сделка -> начисление
+        ref_status    TEXT NOT NULL DEFAULT 'candidate',
+        lead_signal_key TEXT,                        -- dedup_key приведённого лида
+        deal_amount   REAL,
+        referral_pct  REAL,
+        note          TEXT
+    );
+
+    CREATE TABLE outreach_log (
+        id          INTEGER PRIMARY KEY AUTOINCREMENT,
+        created_at  TEXT NOT NULL,
+        channel     TEXT NOT NULL,                   -- email | telegram | phone_script
+        recipient   TEXT NOT NULL,
+        subject     TEXT,
+        body        TEXT NOT NULL,
+        signal_key  TEXT,
+        status      TEXT NOT NULL                    -- draft | sent
+    );
+    """,
 ]
 
 

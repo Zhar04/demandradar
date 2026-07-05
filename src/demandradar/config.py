@@ -33,6 +33,13 @@ class Settings:
     hh_token: str = ""
     data_egov_apikey: str = ""
 
+    # Точечная рассылка (Этап 6): без SMTP_* — только черновики
+    smtp_host: str = ""
+    smtp_port: int = 465
+    smtp_user: str = ""
+    smtp_password: str = ""
+    smtp_from: str = ""
+
     # ИИ-слой (по умолчанию выключен)
     llm_provider: str = "null"
     ollama_model: str = "qwen3:8b"
@@ -72,6 +79,11 @@ def load_settings(dotenv_path: Path | None = None) -> Settings:
         yandex_direct_token=getenv("YANDEX_DIRECT_TOKEN", ""),
         hh_token=getenv("HH_TOKEN", ""),
         data_egov_apikey=getenv("DATA_EGOV_APIKEY", ""),
+        smtp_host=getenv("SMTP_HOST", ""),
+        smtp_port=int(getenv("SMTP_PORT", "465") or 465),
+        smtp_user=getenv("SMTP_USER", ""),
+        smtp_password=getenv("SMTP_PASSWORD", ""),
+        smtp_from=getenv("SMTP_FROM", ""),
         llm_provider=getenv("DR_LLM_PROVIDER", "null"),
         ollama_model=getenv("OLLAMA_MODEL", "qwen3:8b"),
         ollama_base_url=getenv("OLLAMA_BASE_URL", "http://localhost:11434"),
