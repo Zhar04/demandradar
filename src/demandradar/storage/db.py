@@ -56,6 +56,21 @@ MIGRATIONS: list[str] = [
         total_collected INTEGER NOT NULL DEFAULT 0
     );
     """,
+    # v2: кеш профилей компаний для обогащения контактами ЛПР
+    """
+    CREATE TABLE company_cache (
+        bin           TEXT PRIMARY KEY,
+        name          TEXT,
+        director      TEXT,
+        phone         TEXT,
+        email         TEXT,
+        address       TEXT,
+        oked          TEXT,
+        registered_at TEXT,
+        source        TEXT NOT NULL,
+        fetched_at    TEXT NOT NULL
+    );
+    """,
 ]
 
 

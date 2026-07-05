@@ -41,6 +41,7 @@ class Settings:
     # Конфиги из YAML
     sources: dict = field(default_factory=dict)
     categories: dict = field(default_factory=dict)
+    scoring: dict = field(default_factory=dict)
 
     def env_value(self, name: str) -> str:
         """Значение env-переменной по имени (для проверки live-режима коннектора)."""
@@ -75,4 +76,5 @@ def load_settings(dotenv_path: Path | None = None) -> Settings:
         ollama_base_url=getenv("OLLAMA_BASE_URL", "http://localhost:11434"),
         sources=_load_yaml(CONFIG_DIR / "sources.yaml"),
         categories=_load_yaml(CONFIG_DIR / "categories.yaml"),
+        scoring=_load_yaml(CONFIG_DIR / "scoring.yaml"),
     )

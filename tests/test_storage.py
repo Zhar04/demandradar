@@ -3,7 +3,7 @@
 import pytest
 
 from demandradar.core.models import DemandSignal, DemandType, SignalStatus
-from demandradar.storage.db import Database
+from demandradar.storage.db import MIGRATIONS, Database
 from demandradar.storage.repo import ConnectorStateRepository, SignalRepository
 
 
@@ -31,7 +31,22 @@ def make_signal(source_id="anno-1-lot-1", **overrides) -> DemandSignal:
 
 def test_migrate_idempotent(db):
     db.migrate()  # повторный вызов не падает и не дублирует схему
-    assert db.conn.execute("PRAGMA user_version").fetchone()[0] == 1
+    assert db.conn.execute("PRAGMA user_version").fetchone()[0] == len(MIGRATIONS)
+
+
+def test_incremental_migration_from_v1():
+    """БД, созданная на этапе v1, безопасно докатывается до текущей версии."""
+    database = Database(":memory:")
+    with database.conn:
+        database.conn.executescript(MIGRATIONS[0])
+        database.conn.execute("PRAGMA user_version = 1")
+    database.migrate()
+    assert database.conn.execute("PRAGMA user_version").fetchone()[0] == len(MIGRATIONS)
+    # таблица из v2 существует
+    assert database.conn.execute(
+        "SELECT name FROM sqlite_master WHERE type='table' AND name='company_cache'"
+    ).fetchone() is not None
+    database.close()
 
 
 def test_save_if_new_dedup(db):

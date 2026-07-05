@@ -106,6 +106,54 @@ class SignalRepository:
         )
 
 
+class CompanyCacheRepository:
+    """Кеш профилей компаний (обогащение по БИН). TTL пока не нужен: реестры
+    статичны, инвалидация — DELETE при необходимости."""
+
+    def __init__(self, db: Database):
+        self.db = db
+
+    def get(self, bin_code: str):
+        from demandradar.enrich.base import CompanyProfile  # локально: избегаем цикла импортов
+
+        row = self.db.conn.execute("SELECT * FROM company_cache WHERE bin=?", (bin_code,)).fetchone()
+        if row is None:
+            return None
+        return CompanyProfile(
+            bin=row["bin"],
+            name=row["name"],
+            director=row["director"],
+            phone=row["phone"],
+            email=row["email"],
+            address=row["address"],
+            oked=row["oked"],
+            registered_at=row["registered_at"],
+            source=row["source"],
+        )
+
+    def put(self, profile) -> None:
+        with self.db.conn:
+            self.db.conn.execute(
+                """
+                INSERT OR REPLACE INTO company_cache
+                    (bin, name, director, phone, email, address, oked, registered_at, source, fetched_at)
+                VALUES (?,?,?,?,?,?,?,?,?,?)
+                """,
+                (
+                    profile.bin,
+                    profile.name,
+                    profile.director,
+                    profile.phone,
+                    profile.email,
+                    profile.address,
+                    profile.oked,
+                    _iso(profile.registered_at),
+                    profile.source,
+                    datetime.now(UTC).isoformat(),
+                ),
+            )
+
+
 class ConnectorStateRepository:
     def __init__(self, db: Database):
         self.db = db

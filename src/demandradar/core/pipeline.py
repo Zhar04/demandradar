@@ -16,12 +16,21 @@ from datetime import datetime
 from demandradar.classify.classifier import Classifier
 from demandradar.config import Settings
 from demandradar.connectors.base import all_connector_keys, get_connector_class
+from demandradar.core.models import ProductCategory
+from demandradar.enrich.enricher import ContactEnricher
+from demandradar.enrich.providers import MockRegistryProvider
+from demandradar.llm.base import LLMProvider
+from demandradar.llm.factory import create_llm_provider
 from demandradar.net.http import Fetcher
 from demandradar.notify.telegram import TelegramNotifier
+from demandradar.scoring.scorer import Scorer
 from demandradar.storage.db import Database
-from demandradar.storage.repo import ConnectorStateRepository, SignalRepository
+from demandradar.storage.repo import CompanyCacheRepository, ConnectorStateRepository, SignalRepository
 
 logger = logging.getLogger(__name__)
+
+# Категории, которые LLM может присвоить «мутному» лоту (все, кроме other)
+_LLM_LABELS = [c.value for c in ProductCategory if c is not ProductCategory.OTHER]
 
 
 @dataclass
@@ -62,6 +71,8 @@ def run_once(
     since: datetime | None = None,
     db: Database | None = None,
     fetcher: Fetcher | None = None,
+    llm: LLMProvider | None = None,
+    enricher: ContactEnricher | None = None,
 ) -> RunReport:
     own_db = db is None
     db = db or Database(settings.db_path)
@@ -71,6 +82,17 @@ def run_once(
     signals_repo = SignalRepository(db)
     state_repo = ConnectorStateRepository(db)
     classifier = Classifier(settings.categories)
+    scorer = Scorer(settings.scoring)
+    enricher = enricher or ContactEnricher(
+        providers=[MockRegistryProvider()],
+        cache=CompanyCacheRepository(db),
+    )
+    llm = llm or create_llm_provider(
+        settings.llm_provider,
+        ollama_base_url=settings.ollama_base_url,
+        ollama_model=settings.ollama_model,
+    )
+    llm_available = llm.is_available()  # один раз за проход; Null -> False мгновенно
     notifier = TelegramNotifier(
         fetcher,
         bot_token=settings.telegram_bot_token,
@@ -95,9 +117,8 @@ def run_once(
 
             for signal in connector.collect(since=effective_since):
                 stats.collected += 1
-                match = classifier.classify(
-                    f"{signal.title}\n{signal.description}", signal.matched_codes
-                )
+                text = f"{signal.title}\n{signal.description}"
+                match = classifier.classify(text, signal.matched_codes)
                 if not match.matched:
                     stats.dropped += 1
                     continue
@@ -107,11 +128,23 @@ def run_once(
                 if match.codes:
                     signal.matched_codes = match.codes
 
-                if signals_repo.save_if_new(signal):
-                    stats.new += 1
-                    notifier.send_signal(signal)
-                else:
+                if signals_repo.exists(signal.dedup_key):
                     stats.duplicates += 1
+                else:
+                    # опциональный ИИ: уточнить категорию «мутного» лота (other)
+                    if signal.category is ProductCategory.OTHER and llm_available:
+                        _llm_refine_category(llm, signal, text)
+                    try:
+                        enricher.enrich(signal)
+                    except Exception:  # noqa: BLE001 — обогащение не критично
+                        logger.exception("[%s] enrichment failed for %s", key, signal.source_id)
+                    signal.score = scorer.score(signal)
+
+                    if signals_repo.save_if_new(signal):
+                        stats.new += 1
+                        notifier.send_signal(signal)
+                    else:
+                        stats.duplicates += 1
 
                 if signal.published_at and (max_published is None or signal.published_at > max_published):
                     max_published = signal.published_at
@@ -135,6 +168,24 @@ def run_once(
     if own_db:
         db.close()
     return report
+
+
+def _llm_refine_category(llm: LLMProvider, signal, text: str) -> None:
+    """Попросить LLM уточнить категорию. Любая проблема — категория остаётся other."""
+    try:
+        label = llm.classify(
+            text[:2000],
+            _LLM_LABELS,
+            instruction="Определи товарную категорию закупки (мебель и оснащение).",
+        )
+    except Exception:  # noqa: BLE001 — ИИ-слой не смеет ломать конвейер
+        logger.exception("LLM classify failed for %s", signal.source_id)
+        return
+    if label:
+        try:
+            signal.category = ProductCategory(label)
+        except ValueError:
+            logger.warning("LLM returned unknown label %r for %s", label, signal.source_id)
 
 
 def _cursor_to_datetime(cursor: str | None) -> datetime | None:
