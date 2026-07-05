@@ -38,9 +38,11 @@ def setup_logging(level: str) -> None:
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(prog="demandradar", description="Радар спроса КЗ/СНГ")
     parser.add_argument("--once", action="store_true", help="один проход конвейера и выход")
+    parser.add_argument("--daemon", action="store_true", help="режим 24/7: планировщик + дайджест")
     parser.add_argument("--serve", action="store_true", help="запустить веб-дашборд")
     parser.add_argument("--digest", action="store_true", help="отправить дневной дайджест и выйти")
     parser.add_argument("--port", type=int, default=8080, help="порт дашборда (с --serve)")
+    parser.add_argument("--host", default="127.0.0.1", help="хост дашборда (в Docker: 0.0.0.0)")
     parser.add_argument("--dry-run", action="store_true", help="не отправлять уведомления (печать в консоль)")
     parser.add_argument("--connector", help="запустить только указанный коннектор")
     parser.add_argument("--backfill", type=int, metavar="N", help="собрать за последние N дней (игнорируя курсор)")
@@ -64,7 +66,13 @@ def main(argv: list[str] | None = None) -> int:
 
         from demandradar.dashboard.app import create_app
 
-        uvicorn.run(create_app(settings), host="127.0.0.1", port=args.port, log_level="info")
+        uvicorn.run(create_app(settings), host=args.host, port=args.port, log_level="info")
+        return 0
+
+    if args.daemon:
+        from demandradar.core.daemon import Daemon
+
+        Daemon(settings, dry_run=args.dry_run).run_forever()
         return 0
 
     if args.digest:
@@ -138,7 +146,7 @@ def main(argv: list[str] | None = None) -> int:
         return 0
 
     if not args.once:
-        parser.error("укажите режим: --once, --serve или --digest (демон появится на Этапе 7)")
+        parser.error("укажите режим: --once, --daemon, --serve или --digest")
 
     keys = None
     if args.connector:

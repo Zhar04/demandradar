@@ -1,0 +1,23 @@
+services:
+  radar:
+    build: .
+    env_file: .env
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+      - ./config:/app/config
+    restart: unless-stopped
+    command: ["python", "-m", "demandradar", "--daemon"]
+
+  dashboard:
+    build: .
+    env_file: .env
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+      - ./config:/app/config
+    ports:
+      # наружу только на localhost VPS; публикация — через reverse-proxy с auth!
+      - "127.0.0.1:8080:8080"
+    restart: unless-stopped
+    command: ["python", "-m", "demandradar", "--serve", "--host", "0.0.0.0", "--port", "8080"]
