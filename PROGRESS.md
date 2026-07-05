@@ -16,15 +16,19 @@
 
 **Самооценка Э0: 92/100** — Корректность 38/40 (реестр источников проверен вживую; -2 за неподтверждённые без токена детали goszakup), Тесты 22/25 (23 юнит-теста на абстракции; -3 нет интеграционных, появятся в Э1), Надёжность 18/20 (ретраи/backoff/троттлинг реализованы и оттестированы), Качество/доки 14/15.
 
-## Э1. Вертикальный срез goszakup — ⏳ В РАБОТЕ
+## Э1. Вертикальный срез goszakup — ✅ ЗАВЕРШЁН (2026-07-05)
 
-- [ ] storage: schema v1 (signals, connector_state), repo-слой, дедуп
-- [ ] classify: фильтр+категоризация по categories.yaml (keywords + tru_prefixes + negative)
-- [ ] connectors/goszakup: GraphQL-клиент (limit/after пагинация, publishDate-фильтр), mock-фикстуры в форме реального ответа ows, live по GOSZAKUP_TOKEN
-- [ ] notify: Telegram (dry-run в консоль без токена)
-- [ ] core/pipeline + CLI: --once --dry-run --connector goszakup --backfill N
-- [ ] тесты этапа + повторный прогон = 0 новых (дедуп)
-- [ ] score ≥ 85, коммит, обновить этот файл
+- [x] storage: schema v1 (signals, connector_state), repo-слой, дедуп INSERT OR IGNORE по sha256(source:source_id), WAL, версионирование миграций
+- [x] classify: стемы по началу слова + negative_keywords с «вето» на global-сеть + tru_prefixes (сила: код = 2 слова)
+- [x] connectors/goszakup: GraphQL-клиент (limit/after keyset-пагинация, publishDate-фильтр, Bearer), mock-фикстуры 1:1 по форме ответа ows (7 объявлений / 9 лотов, вкл. нерелевантные и объявление без лотов), сигнал = ЛОТ, контакты заказчика из Subject, КАТО→регион
+- [x] notify: Telegram через общий Fetcher, HTML-формат, dry-run в консоль без токена
+- [x] core/pipeline (изоляция сбоя коннектора, курсор=max(publishDate) в connector_state) + CLI: --once --dry-run --connector --backfill N --db; pip install -e .
+- [x] Тесты: 61 passed (были 23) — storage, classifier (позитив/негатив/вето/коды/стемы), goszakup (нормализация, пагинация, ошибки GraphQL), pipeline (фильтр, дедуп, битый коннектор не роняет проход)
+- [x] Дым-тест CLI: 1-й прогон new=8 (уголь и «ремонт кровли» отброшены), 2-й прогон new=0 dup=8; ruff чист
+
+**Самооценка Э1: 92/100** — Корректность 37/40 (срез работает конец-в-конец; -3: live-режим не проверен без токена, маппинг enstruList ИД→код отложен, см. A-13), Тесты 23/25 (-2: нет live-интеграционного), Надёжность 18/20 (изоляция ошибок на уровне элемента и коннектора, курсоры, ретраи), Качество/доки 14/15.
+
+**Хвост на Э1-live (когда владелец даст GOSZAKUP_TOKEN):** живая интроспекция для сверки схемы; выгрузка ref_enstru и маппинг ИД→код (A-13); сверка значений refBuyStatusId; реальный backfill-прогон.
 
 ## Э2..Э7 — ожидают (критерии в PLAN.md §5)
 

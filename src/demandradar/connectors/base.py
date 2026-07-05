@@ -43,6 +43,15 @@ class Connector(ABC):
         self.fetcher = fetcher
         self.mode = mode
 
+    @classmethod
+    def from_settings(cls, fetcher: Fetcher, settings) -> Connector:
+        """Собрать коннектор из настроек. Режим: LIVE, если все required_env заданы.
+
+        Коннекторы с доп. параметрами (токен и т.п.) переопределяют этот метод.
+        """
+        live = all(settings.env_value(name) for name in cls.required_env)
+        return cls(fetcher, ConnectorMode.LIVE if live else ConnectorMode.MOCK)
+
     # -- обязательная часть -------------------------------------------------
 
     @abstractmethod
