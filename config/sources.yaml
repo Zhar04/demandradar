@@ -270,31 +270,35 @@ sources:
     legal: "требует проверки"
 
   # ---------- ОПЕРЕЖАЮЩИЙ СПРОС (Этап 5) ----------
+  data_egov:
+    title: "Открытые данные (data.egov.kz) — реестр юрлиц"
+    url: https://data.egov.kz/datasets/view?index=gbd_ul
+    segment: company_registry
+    demand: leading
+    access: api               # API v4: GET /api/v4/{index}/{version}?apiKey=...&source={ES-запрос}
+    auth: free_token          # ключ бесплатно: регистрация egov.kz -> Кабинет разработчика -> /profile/apikeylist
+    status: mock
+    stage: E5
+    priority: 1
+    notes: >
+      ЯДРО опережающего модуля. Датасет gbd_ul (ГБД «Юридические лица», Минюст):
+      наименование, ДАТА РЕГИСТРАЦИИ, БИН, адрес, ОКЭД, ФИО руководителя; живой
+      (обновлён 05.07.2026). Есть датасет по ИП. Без apiKey — 403 (проверено).
+      Датасета «разрешения на строительство» единого нет — заменяем новостями+krisha.
+    legal: "официальные открытые данные"
+
   statsnet:
-    title: "Новые компании РК (statsnet.co)"
+    title: "Statsnet (обогащение по компаниям)"
     url: https://statsnet.co
     segment: company_registry
     demand: leading
     access: api
-    auth: free_token          # уточняется (Этап 0, агент ещё работает)
-    status: mock
-    stage: E5
-    priority: 1
-    notes: "Новые ТОО/ИП по ОКЭД+региону. Fallback: датасеты data.egov.kz (реестр БИН)."
-    legal: "официальный API"
-
-  data_egov:
-    title: "Открытые данные (data.egov.kz)"
-    url: https://data.egov.kz
-    segment: company_registry
-    demand: leading
-    access: api
-    auth: free_token          # API-ключ по бесплатной регистрации
-    status: todo
-    stage: E5
-    priority: 2
-    notes: "Датасеты: зарегистрированные юрлица, разрешения на строительство. Проверить актуальность датасетов."
-    legal: "официальные открытые данные"
+    auth: paid                # API только на тарифе Pro; веб-карточки бесплатны
+    status: rejected          # как ИСТОЧНИК отклонён (платный); данные о новых юрлицах берём из data.egov
+    stage: null
+    priority: 3
+    notes: "Платное обогащение (контакты/связи/суды) — по решению владельца после MVP. Аналоги: Kompra (API индивидуально), Adata Pro, pk.uchet.kz (от 350 ₸/проверка)."
+    legal: "платный сервис"
 
   news_rss:
     title: "Деловые новости РК (RSS-пул)"
@@ -306,7 +310,11 @@ sources:
     status: todo
     stage: E5
     priority: 1
-    notes: "Ключи: «открытие», «строительство», «инвестпроект», «новый завод/ТРЦ/магазин». Рабочие URL лент уточняются."
+    notes: >
+      Проверенные рабочие ленты (05.07.2026): kapital.kz/feed (именно /feed!),
+      kz.kursiv.media/feed/, inbusiness.kz/ru/rss, time.kz/rss, profit.kz/rss/,
+      astanatimes.com/feed/atom/. НЕ работают: forbes.kz, zakon.kz, tengrinews, liter.kz
+      (RSS удалены). Ключи: «открытие», «строительство», «инвестпроект», «новый ТРЦ/завод/магазин».
     legal: "RSS предназначен для чтения программами"
 
   hh_kz:
@@ -315,25 +323,44 @@ sources:
     segment: jobs
     demand: leading
     access: api
-    auth: none                # анонимно можно, токен повышает лимиты
-    status: todo
+    auth: free_token          # анонимно 403 (проверено); нужен app token: dev.hh.ru, одобрение ~неделя, бесплатно
+    status: mock
     stage: E5
     priority: 2
-    notes: "Для Модуля B: массовый наём в городе = скорое открытие объекта watchlist-компании."
-    legal: "официальный API"
+    notes: >
+      host=hh.kz, area=40 (Казахстан). Для Модуля B: массовый наём = скорое открытие.
+      Лимиты не публикуются (антибот). Условия API: данные только для целей, связанных
+      с hh — используем как внутренний сигнал, не перепродаём.
+    legal: "официальный API; переиспользование данных ограничено условиями"
 
   # ---------- ЛАТЕНТНЫЙ СПРОС (Этап 6) ----------
   wordstat:
-    title: "Яндекс Wordstat (API Директа)"
-    url: https://direct.yandex.ru
+    title: "Яндекс Wordstat API"
+    url: https://api.wordstat.yandex.net
+    segment: search_demand
+    demand: latent
+    access: api               # /v1/topRequests, /v1/dynamics, /v1/regions, /v1/getRegionsTree
+    auth: free_token          # бесплатно по заявке: OAuth-токен + ClientId + заявка в поддержку Директа (нужна >=1 черновая кампания)
+    status: mock
+    stage: E6
+    priority: 1
+    notes: >
+      ГЛАВНЫЙ датчик латентного спроса. Квота 10 rps / 1000 запросов-сутки.
+      Регионы КЗ поддерживаются (ID снять один раз через getRegionsTree).
+      Это ОТДЕЛЬНЫЙ Wordstat API 2024 года, НЕ Direct API v5.
+    legal: "официальный API"
+
+  google_kwp:
+    title: "Google Keyword Planner (Google Ads API)"
+    url: https://developers.google.com/google-ads/api
     segment: search_demand
     demand: latent
     access: api
-    auth: free_token          # OAuth Яндекса; условия уточняются
-    status: mock
+    auth: free_token          # бесплатно, но высокий порог: прод-MCC + developer token + заявка Basic (15000 оп/день)
+    status: todo
     stage: E6
-    priority: 2
-    notes: "Датчик поискового спроса по регионам КЗ («кровати оптом», «стеллажи склад»...)."
+    priority: 3
+    notes: "Вторая очередь после Wordstat. Keyword Planning: 1 rps на customer ID; кешировать (метрики месячные)."
     legal: "официальный API"
 
   satu:
@@ -341,13 +368,26 @@ sources:
     url: https://satu.kz
     segment: marketplace
     demand: latent
-    access: api               # уточняется
-    auth: free_token
+    access: scrape            # API только для продавцов (управление своими товарами)
+    auth: none
     status: todo
     stage: E6
     priority: 3
-    notes: "Условия API уточняются (агент Этапа 0)."
-    legal: "уточняется"
+    notes: "robots.txt: /search и /*? закрыты, карточки/категории открыты. Годится для цен/ассортимента, не спроса."
+    legal: "robots.txt частично ограничивает; API - только кабинет продавца"
+
+  olx:
+    title: "OLX.kz (доски объявлений)"
+    url: https://www.olx.kz
+    segment: marketplace
+    demand: latent
+    access: scrape            # Partner API только по партнёрскому договору
+    auth: none
+    status: todo
+    stage: E6
+    priority: 3
+    notes: "robots.txt: Allow / для листингов; sitemap есть. B2B-запросы «куплю оптом» встречаются в объявлениях."
+    legal: "robots.txt разрешает листинги"
 
   krisha:
     title: "krisha.kz (коммерческая недвижимость, Модуль A)"
@@ -360,6 +400,8 @@ sources:
     stage: E6
     priority: 2
     notes: >
-      Модуль A: точечный разбор конкретного объявления по URL для реферальной
-      программы. Массовый обход НЕ делаем (правила площадки). Статус уточняется.
-    legal: "массовый парсинг запрещён правилами — только точечный ассистент"
+      Модуль A + опережающий сигнал: объявления «сдам помещение под магазин/гостиницу»,
+      «продам действующий бизнес» = будущие закупки. robots.txt открывает объявления
+      (Crawl-delay нет, sitemap есть), официального API нет. Работаем как ТОЧЕЧНЫЙ
+      ассистент по ссылке/разделу коммерческой недвижимости, деликатный темп, без обхода защит.
+    legal: "robots.txt не запрещает объявления; ToS уточнить; массовый агрессивный обход не делаем"
