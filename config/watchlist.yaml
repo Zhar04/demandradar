@@ -1,0 +1,52 @@
+# ============================================================
+# МОДУЛЬ B: watchlist крупных игроков (сети и девелоперы).
+# ЧЕРНОВИК из брифа — владелец подтвердит/дополнит список.
+# aliases — стемы для поиска по сигналам (регистронезависимо);
+# interest — какие наши товарные группы им обычно нужны.
+# ============================================================
+
+companies:
+  - name: "Magnum"
+    aliases: [magnum, магнум]
+    segment: "продуктовый ретейл"
+    interest: [racks, retail_equipment, showcases]
+  - name: "Small"
+    aliases: [small, смолл, "скиф трейд"]
+    segment: "продуктовый ретейл"
+    interest: [racks, retail_equipment]
+  - name: "SPAR"
+    aliases: [spar, спар]
+    segment: "продуктовый ретейл"
+    interest: [racks, retail_equipment]
+  - name: "Galmart"
+    aliases: [galmart, галмарт]
+    segment: "продуктовый ретейл"
+    interest: [racks, retail_equipment, showcases]
+  - name: "Arzan"
+    aliases: [arzan, арзан]
+    segment: "гипермаркеты"
+    interest: [racks, retail_equipment]
+  - name: "Anvar"
+    aliases: [anvar, анвар]
+    segment: "гипермаркеты"
+    interest: [racks, retail_equipment]
+  - name: "Той Март"
+    aliases: [тоймарт, "той март", toimart, toymart]
+    segment: "гипермаркеты"
+    interest: [racks, retail_equipment]
+  - name: "Metro"
+    aliases: ["metro cash", "метро кэш", "metro кэш энд керри"]
+    segment: "оптовый ретейл"
+    interest: [racks, retail_equipment]
+  - name: "BI Group"
+    aliases: ["bi group", "bi-group", "би групп", bnect]
+    segment: "девелопер"
+    interest: [turnkey, kitchen, furniture_ldsp]
+  - name: "Bazis-A"
+    aliases: [bazis, "базис-а", "базис а"]
+    segment: "девелопер"
+    interest: [turnkey, showcases, retail_equipment]
+  - name: "Nazarbayev University"
+    aliases: ["nazarbayev university", "назарбаев университет"]
+    segment: "образование (кампусы)"
+    interest: [beds, mattresses, bedding, furniture_ldsp]

@@ -84,33 +84,44 @@ oked_watch:
   hotels_hostels:
     title: "Гостиницы, хостелы, общежития (кровати, матрасы, бельё)"
     codes: ["55.10", "55.20", "55.90"]
+    category: beds
   healthcare:
     title: "Больницы, клиники, санатории (мед. кровати, мебель, бельё)"
     codes: ["86.10", "86.90"]
+    category: beds
   education:
     title: "Школы, вузы, детсады, интернаты (кровати, мебель)"
     codes: ["85.10", "85.20", "85.31", "85.42"]
+    category: beds
   retail_food:
     title: "Продуктовый ретейл (стеллажи, ценникодержатели, крючки)"
     codes: ["47.11", "47.19"]
+    category: retail_equipment
   pharmacies:
     title: "Аптеки (аптека под ключ, витрины)"
     codes: ["47.73"]
+    category: turnkey
   jewelry:
     title: "Ювелирные магазины (витрины, салон под ключ)"
     codes: ["47.77"]
+    category: showcases
   warehousing:
     title: "Склады и логистика (стеллажи)"
     codes: ["52.10", "52.29"]
+    category: racks
   construction_dev:
     title: "Девелоперы/застройщики (оснащение объектов, опережающий)"
     codes: ["41.10", "41.20", "68.10", "68.20"]
+    category: turnkey
   furniture_retail:
     title: "Мебельные магазины (опт/розница — партнёры или клиенты)"
     codes: ["47.59", "46.47", "46.15"]
+    category: furniture_ldsp
   museums:
     title: "Музеи (музейные витрины)"
     codes: ["91.02"]
+    category: showcases
   offices_bpo:
     title: "Крупные офисы/колл-центры (кресла, офисная мебель)"
     codes: ["82.20", "70.10"]
+    category: office_chairs

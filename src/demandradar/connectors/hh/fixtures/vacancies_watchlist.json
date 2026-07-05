@@ -1,0 +1,44 @@
+{
+  "items": [
+    {
+      "id": "99100234",
+      "name": "Продавец-консультант (новый магазин)",
+      "employer": { "name": "Magnum Cash & Carry" },
+      "area": { "name": "Шымкент" },
+      "published_at": "2026-07-03T11:20:00+0500",
+      "alternate_url": "https://hh.kz/vacancy/99100234"
+    },
+    {
+      "id": "99100301",
+      "name": "Кладовщик-комплектовщик РЦ",
+      "employer": { "name": "Magnum Cash & Carry" },
+      "area": { "name": "Шымкент" },
+      "published_at": "2026-07-04T09:05:00+0500",
+      "alternate_url": "https://hh.kz/vacancy/99100301"
+    },
+    {
+      "id": "99100455",
+      "name": "Администратор гостиницы",
+      "employer": { "name": "ТОО Grand Hostel Aktau" },
+      "area": { "name": "Актау" },
+      "published_at": "2026-07-04T15:30:00+0500",
+      "alternate_url": "https://hh.kz/vacancy/99100455"
+    },
+    {
+      "id": "99100510",
+      "name": "Главный бухгалтер",
+      "employer": { "name": "Magnum Cash & Carry" },
+      "area": { "name": "Алматы" },
+      "published_at": "2026-07-02T10:00:00+0500",
+      "alternate_url": "https://hh.kz/vacancy/99100510"
+    },
+    {
+      "id": "99100612",
+      "name": "Продавец-кассир",
+      "employer": { "name": "ТОО SomeOther Retail" },
+      "area": { "name": "Астана" },
+      "published_at": "2026-07-03T08:00:00+0500",
+      "alternate_url": "https://hh.kz/vacancy/99100612"
+    }
+  ]
+}

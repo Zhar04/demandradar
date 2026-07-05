@@ -150,6 +150,13 @@ def create_app(settings: Settings) -> FastAPI:
             state["alive"] = alive
         return templates.TemplateResponse(request, "connectors.html", {"states": states})
 
+    @app.get("/watchlist")
+    def watchlist_page(request: Request, db: Database = Depends(get_db)):
+        from demandradar.watchlist.engine import build_profiles
+
+        cards = build_profiles(SignalRepository(db), settings.watchlist)
+        return templates.TemplateResponse(request, "watchlist.html", {"cards": cards})
+
     # -- отчёт ------------------------------------------------------------------
 
     @app.get("/report")

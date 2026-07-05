@@ -74,6 +74,10 @@ class DemandSignal(BaseModel):
     category: ProductCategory = ProductCategory.OTHER
     matched_keywords: list[str] = Field(default_factory=list)  # чем зацепился фильтр
     matched_codes: list[str] = Field(default_factory=list)     # коды ТРУ/ЕНС, если были
+    # Коннектор САМ определил релевантность и категорию (опережающие сигналы:
+    # новые компании по ОКЭД, новости-триггеры, вакансии watchlist). Классификатор
+    # ядра такие сигналы не перепроверяет — товарных слов в них нет по природе.
+    pre_classified: bool = False
 
     # Заказчик
     customer_name: str | None = None

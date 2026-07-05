@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}DemandRadar — watchlist{% endblock %}
+{% block content %}
+<h1>Watchlist крупных игроков (Модуль B)</h1>
+<p class="muted">Профиль собирается из всех сигналов системы: тендеры, новости-триггеры,
+вакансии, регистрации. Список компаний — <code>config/watchlist.yaml</code>.</p>
+
+{% for card in cards %}
+  {% if card.signals %}
+  <div class="card" style="margin-bottom:16px; min-width:100%;">
+    <h2 style="margin-top:0">{{ card.name }} <span class="muted">— {{ card.segment }}</span></h2>
+    <p><b>Фаза:</b> <span class="pill">{{ card.phase }}</span>
+       &nbsp; <b>Источники:</b> {{ card.sources | join(", ") }}
+       &nbsp; <b>Последняя активность:</b> {{ card.last_activity.strftime("%d.%m.%Y") if card.last_activity else "—" }}</p>
+    <p><b>Предполагаемая потребность:</b>
+      {% for cat in card.interest %}<span class="pill">{{ category_titles.get(cat, cat) }}</span> {% endfor %}
+    </p>
+    {% if card.contacts %}
+    <p><b>Контакты из сигналов:</b>
+      {% for c in card.contacts[:4] %}
+        <div class="muted">👤 {{ [c.name, c.role, c.phone, c.email] | select | join(" · ") }}</div>
+      {% endfor %}
+    </p>
+    {% endif %}
+    <table>
+      <tr><th>Дата</th><th>Сигнал</th><th>Тип</th><th>Источник</th></tr>
+      {% for s in card.signals[:8] %}
+      <tr>
+        <td>{{ (s.published_at or s.collected_at).strftime("%d.%m.%Y") }}</td>
+        <td><a href="{{ s.url }}" target="_blank" rel="noopener">{{ s.title }}</a></td>
+        <td>{{ s.demand_type.value }}</td>
+        <td>#{{ s.source }}</td>
+      </tr>
+      {% endfor %}
+    </table>
+  </div>
+  {% endif %}
+{% endfor %}
+
+<h2>Без активности</h2>
+<p class="muted">
+{% for card in cards if not card.signals %}{{ card.name }}{{ ", " if not loop.last }}{% endfor %}
+</p>
+{% endblock %}

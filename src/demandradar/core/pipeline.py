@@ -118,21 +118,22 @@ def run_once(
             for signal in connector.collect(since=effective_since):
                 stats.collected += 1
                 text = f"{signal.title}\n{signal.description}"
-                match = classifier.classify(text, signal.matched_codes)
-                if not match.matched:
-                    stats.dropped += 1
-                    continue
+                if not signal.pre_classified:
+                    match = classifier.classify(text, signal.matched_codes)
+                    if not match.matched:
+                        stats.dropped += 1
+                        continue
+                    signal.category = match.category
+                    signal.matched_keywords = match.keywords
+                    if match.codes:
+                        signal.matched_codes = match.codes
                 stats.relevant += 1
-                signal.category = match.category
-                signal.matched_keywords = match.keywords
-                if match.codes:
-                    signal.matched_codes = match.codes
 
                 if signals_repo.exists(signal.dedup_key):
                     stats.duplicates += 1
                 else:
                     # опциональный ИИ: уточнить категорию «мутного» лота (other)
-                    if signal.category is ProductCategory.OTHER and llm_available:
+                    if signal.category is ProductCategory.OTHER and not signal.pre_classified and llm_available:
                         _llm_refine_category(llm, signal, text)
                     try:
                         enricher.enrich(signal)
