@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}DemandRadar — коннекторы{% endblock %}
+{% block content %}
+<h1>Мониторинг коннекторов</h1>
+<table>
+  <tr><th>Коннектор</th><th>Состояние</th><th>Последний запуск</th>
+      <th>Последний успех</th><th>Курсор</th><th>Собрано всего</th><th>Ошибка</th></tr>
+  {% for st in states %}
+  <tr>
+    <td>{{ st.connector_key }}</td>
+    <td>{% if st.alive %}<span class="ok">● жив</span>{% else %}<span class="err">● упал/молчит</span>{% endif %}</td>
+    <td>{{ st.last_run_at or "—" }}</td>
+    <td>{{ st.last_success_at or "—" }}</td>
+    <td class="muted">{{ st.last_cursor or "—" }}</td>
+    <td>{{ st.total_collected }}</td>
+    <td class="err">{{ st.last_error or "" }}</td>
+  </tr>
+  {% else %}
+  <tr><td colspan="7" class="muted">Ещё не было ни одного запуска.</td></tr>
+  {% endfor %}
+</table>
+<p class="muted">«Жив» = успешный запуск за последние 24 часа.</p>
+{% endblock %}

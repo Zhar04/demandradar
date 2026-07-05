@@ -1,0 +1,64 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{% block title %}DemandRadar{% endblock %}</title>
+<style>
+  :root { --bg:#0f1420; --card:#1a2130; --line:#2a3347; --text:#e8ecf3; --muted:#8b96ab;
+          --accent:#4da3ff; --good:#3ecf8e; --warn:#f5a623; --bad:#ff6b6b; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--text);
+         font:14px/1.5 "Segoe UI", system-ui, sans-serif; }
+  header { display:flex; gap:24px; align-items:center; padding:14px 24px;
+           background:var(--card); border-bottom:1px solid var(--line); }
+  header .logo { font-weight:700; font-size:16px; color:var(--accent); }
+  header a { color:var(--muted); text-decoration:none; }
+  header a:hover, header a.active { color:var(--text); }
+  main { padding:20px 24px; max-width:1280px; margin:0 auto; }
+  h1 { font-size:20px; margin:8px 0 16px; }
+  h2 { font-size:15px; margin:20px 0 10px; color:var(--muted); text-transform:uppercase;
+       letter-spacing:.05em; }
+  .cards { display:flex; flex-wrap:wrap; gap:12px; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:10px;
+          padding:12px 18px; min-width:120px; }
+  .card .num { font-size:24px; font-weight:700; }
+  .card .lbl { color:var(--muted); font-size:12px; }
+  table { width:100%; border-collapse:collapse; background:var(--card);
+          border:1px solid var(--line); border-radius:10px; overflow:hidden; }
+  th, td { padding:8px 10px; text-align:left; border-bottom:1px solid var(--line);
+           vertical-align:top; }
+  th { color:var(--muted); font-weight:600; font-size:12px; text-transform:uppercase; }
+  tr:last-child td { border-bottom:none; }
+  a { color:var(--accent); }
+  .score { font-weight:700; }
+  .score.hot { color:var(--bad); } .score.warm { color:var(--warn); } .score.cool { color:var(--muted); }
+  .pill { display:inline-block; padding:1px 8px; border-radius:999px; font-size:12px;
+          background:#243049; color:var(--text); white-space:nowrap; }
+  .pill.new { background:#1d3a5f; } .pill.deal { background:#14532d; }
+  .pill.rejected { background:#4c1d1d; color:#f3b8b8; }
+  select, input[type=text] { background:#111827; color:var(--text); border:1px solid var(--line);
+          border-radius:6px; padding:5px 8px; }
+  button { background:var(--accent); color:#08213c; border:none; border-radius:6px;
+           padding:6px 12px; font-weight:600; cursor:pointer; }
+  button.ghost { background:transparent; color:var(--accent); border:1px solid var(--accent); }
+  .muted { color:var(--muted); }
+  .ok { color:var(--good); } .err { color:var(--bad); }
+  .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+  @media (max-width:900px) { .grid2 { grid-template-columns:1fr; } }
+  .filters { display:flex; flex-wrap:wrap; gap:8px; margin-bottom:14px; align-items:center; }
+</style>
+</head>
+<body>
+<header>
+  <span class="logo">📡 DemandRadar</span>
+  <a href="/">Обзор</a>
+  <a href="/signals">Сигналы</a>
+  <a href="/connectors">Коннекторы</a>
+  <a href="/report">Отчёт</a>
+</header>
+<main>
+{% block content %}{% endblock %}
+</main>
+</body>
+</html>

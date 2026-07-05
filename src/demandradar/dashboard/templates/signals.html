@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+{% block title %}DemandRadar — сигналы{% endblock %}
+{% block content %}
+<h1>Сигналы</h1>
+
+<form class="filters" method="get" action="/signals">
+  <select name="status">
+    <option value="">— статус —</option>
+    {% for st in statuses %}
+    <option value="{{ st.value }}" {{ "selected" if filters.status == st.value }}>{{ status_titles[st] }}</option>
+    {% endfor %}
+  </select>
+  <select name="category">
+    <option value="">— категория —</option>
+    {% for c in categories %}
+    <option value="{{ c.value }}" {{ "selected" if filters.category == c.value }}>{{ category_titles.get(c.value, c.value) }}</option>
+    {% endfor %}
+  </select>
+  <select name="source">
+    <option value="">— источник —</option>
+    {% for src in sources %}
+    <option value="{{ src }}" {{ "selected" if filters.source == src }}>{{ src }}</option>
+    {% endfor %}
+  </select>
+  <select name="region">
+    <option value="">— регион —</option>
+    {% for r in regions %}
+    <option value="{{ r }}" {{ "selected" if filters.region == r }}>{{ r }}</option>
+    {% endfor %}
+  </select>
+  <input type="text" name="q" placeholder="поиск…" value="{{ filters.q }}">
+  <select name="order">
+    <option value="score" {{ "selected" if filters.order == "score" }}>по score</option>
+    <option value="date" {{ "selected" if filters.order == "date" }}>по дате</option>
+    <option value="budget" {{ "selected" if filters.order == "budget" }}>по бюджету</option>
+  </select>
+  <button type="submit">Фильтровать</button>
+  <a href="/signals" class="muted">сбросить</a>
+</form>
+
+<table>
+  <tr><th>Score</th><th>Сигнал</th><th>Бюджет, ₸</th><th>Заказчик / контакты</th>
+      <th>Регион</th><th>Срок</th><th>Статус</th></tr>
+  {% for s in items %}
+  <tr>
+    <td class="score {{ 'hot' if s.score >= 80 else 'warm' if s.score >= 55 else 'cool' }}">{{ s.score }}</td>
+    <td>
+      <a href="{{ s.url }}" target="_blank" rel="noopener">{{ s.title }}</a>
+      <div class="muted">{{ category_titles.get(s.category.value, s.category.value) }} · #{{ s.source }}
+        {% if s.quantity %} · {{ "{:,.0f}".format(s.quantity).replace(",", " ") }} шт.{% endif %}</div>
+    </td>
+    <td>{{ "{:,.0f}".format(s.budget).replace(",", " ") if s.budget else "—" }}</td>
+    <td>
+      {{ s.customer_name or "—" }}{% if s.customer_bin %} <span class="muted">({{ s.customer_bin }})</span>{% endif %}
+      {% for c in s.contacts %}
+        <div class="muted">👤 {{ [c.name, c.phone, c.email] | select | join(" · ") }}</div>
+      {% endfor %}
+    </td>
+    <td>{{ s.region or "—" }}</td>
+    <td>{{ s.deadline.strftime("%d.%m.%Y") if s.deadline else "—" }}</td>
+    <td>
+      <form method="post" action="/signals/{{ s.dedup_key }}/status">
+        <input type="hidden" name="back" value="/signals?status={{ filters.status }}&amp;category={{ filters.category }}&amp;source={{ filters.source }}&amp;q={{ filters.q }}&amp;order={{ filters.order }}">
+        <select name="status" onchange="this.form.submit()">
+          {% for st in statuses %}
+          <option value="{{ st.value }}" {{ "selected" if s.status == st }}>{{ status_titles[st] }}</option>
+          {% endfor %}
+        </select>
+      </form>
+    </td>
+  </tr>
+  {% else %}
+  <tr><td colspan="7" class="muted">Ничего не найдено. Запустите сбор: <code>python -m demandradar --once</code></td></tr>
+  {% endfor %}
+</table>
+{% endblock %}

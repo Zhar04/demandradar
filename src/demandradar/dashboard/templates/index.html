@@ -1,0 +1,74 @@
+{% extends "base.html" %}
+{% block title %}DemandRadar — обзор{% endblock %}
+{% block content %}
+<h1>Воронка</h1>
+<div class="cards">
+  <div class="card"><div class="num">{{ total }}</div><div class="lbl">Сигналов собрано</div></div>
+  {% for status in statuses %}
+  <div class="card">
+    <div class="num">{{ funnel[status.value] }}</div>
+    <div class="lbl">{{ status_titles[status] }}</div>
+  </div>
+  {% endfor %}
+</div>
+
+<h2>Заявки за период</h2>
+<div class="cards">
+  <div class="card"><div class="num">{{ count_day }}</div><div class="lbl">за сутки</div></div>
+  <div class="card"><div class="num">{{ count_week }}</div><div class="lbl">за неделю</div></div>
+  <div class="card"><div class="num">{{ count_all }}</div><div class="lbl">за всё время</div></div>
+</div>
+
+<div class="grid2">
+  <div>
+    <h2>По источникам</h2>
+    <table>
+      <tr><th>Источник</th><th>Сигналов</th><th>Бюджет, ₸</th></tr>
+      {% for row in by_source %}
+      <tr><td>{{ row.value }}</td><td>{{ row.n }}</td>
+          <td>{{ "{:,.0f}".format(row.budget_sum).replace(",", " ") }}</td></tr>
+      {% endfor %}
+    </table>
+    <h2>По типам спроса</h2>
+    <table>
+      <tr><th>Тип</th><th>Сигналов</th></tr>
+      {% for row in by_demand %}
+      <tr><td>{{ row.value }}</td><td>{{ row.n }}</td></tr>
+      {% endfor %}
+    </table>
+  </div>
+  <div>
+    <h2>По категориям</h2>
+    <table>
+      <tr><th>Категория</th><th>Сигналов</th><th>Бюджет, ₸</th></tr>
+      {% for row in by_category %}
+      <tr><td>{{ category_titles.get(row.value, row.value) }}</td><td>{{ row.n }}</td>
+          <td>{{ "{:,.0f}".format(row.budget_sum).replace(",", " ") }}</td></tr>
+      {% endfor %}
+    </table>
+    <h2>По регионам (топ)</h2>
+    <table>
+      <tr><th>Регион</th><th>Сигналов</th></tr>
+      {% for row in by_region %}
+      <tr><td>{{ row.value }}</td><td>{{ row.n }}</td></tr>
+      {% endfor %}
+    </table>
+  </div>
+</div>
+
+<h2>Топ по приоритету</h2>
+<table>
+  <tr><th>Score</th><th>Сигнал</th><th>Бюджет, ₸</th><th>Заказчик</th><th>Регион</th><th>Статус</th></tr>
+  {% for s in top %}
+  <tr>
+    <td class="score {{ 'hot' if s.score >= 80 else 'warm' if s.score >= 55 else 'cool' }}">{{ s.score }}</td>
+    <td><a href="{{ s.url }}" target="_blank" rel="noopener">{{ s.title }}</a>
+        <div class="muted">{{ category_titles.get(s.category.value, s.category.value) }} · #{{ s.source }}</div></td>
+    <td>{{ "{:,.0f}".format(s.budget).replace(",", " ") if s.budget else "—" }}</td>
+    <td>{{ s.customer_name or "—" }}</td>
+    <td>{{ s.region or "—" }}</td>
+    <td><span class="pill {{ s.status.value }}">{{ status_titles[s.status] }}</span></td>
+  </tr>
+  {% endfor %}
+</table>
+{% endblock %}

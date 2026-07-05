@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block title %}DemandRadar — отчёт{% endblock %}
+{% block content %}
+<h1>Отчёт по актуальным заявкам</h1>
+<p class="muted">Сформирован {{ generated_at.strftime("%d.%m.%Y %H:%M UTC") }} ·
+   все активные заявки (без «Отказ») с момента запуска системы</p>
+
+<div class="cards">
+  <div class="card"><div class="num">{{ items | length }}</div><div class="lbl">активных заявок</div></div>
+  <div class="card"><div class="num">{{ "{:,.0f}".format(total_budget).replace(",", " ") }}</div><div class="lbl">суммарный бюджет, ₸</div></div>
+  <div class="card"><a href="/report.csv"><button>⬇ Скачать CSV</button></a></div>
+</div>
+
+<table style="margin-top:16px">
+  <tr><th>Score</th><th>Статус</th><th>Заявка</th><th>Бюджет, ₸</th>
+      <th>Заказчик и контакты</th><th>Регион</th><th>Срок</th></tr>
+  {% for s in items %}
+  <tr>
+    <td class="score {{ 'hot' if s.score >= 80 else 'warm' if s.score >= 55 else 'cool' }}">{{ s.score }}</td>
+    <td><span class="pill {{ s.status.value }}">{{ status_titles[s.status] }}</span></td>
+    <td><a href="{{ s.url }}" target="_blank" rel="noopener">{{ s.title }}</a>
+        <div class="muted">{{ category_titles.get(s.category.value, s.category.value) }} · #{{ s.source }}</div></td>
+    <td>{{ "{:,.0f}".format(s.budget).replace(",", " ") if s.budget else "—" }}</td>
+    <td>{{ s.customer_name or "—" }}
+      {% for c in s.contacts %}
+        <div class="muted">👤 {{ [c.name, c.phone, c.email] | select | join(" · ") }}</div>
+      {% endfor %}
+    </td>
+    <td>{{ s.region or "—" }}</td>
+    <td>{{ s.deadline.strftime("%d.%m.%Y") if s.deadline else "—" }}</td>
+  </tr>
+  {% endfor %}
+</table>
+{% endblock %}

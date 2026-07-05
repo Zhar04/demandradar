@@ -76,6 +76,89 @@ class SignalRepository:
         ).fetchall()
         return [self._row_to_signal(r) for r in rows]
 
+    # -- запросы для дашборда/отчётов ---------------------------------------
+
+    _BREAKDOWN_COLUMNS = {"source", "category", "region", "demand_type", "status"}
+
+    def funnel_counts(self) -> dict[str, int]:
+        """Счётчики воронки по всем статусам (отсутствующие статусы = 0)."""
+        counts = {status.value: 0 for status in SignalStatus}
+        for row in self.db.conn.execute("SELECT status, COUNT(*) AS n FROM signals GROUP BY status"):
+            counts[row["status"]] = row["n"]
+        return counts
+
+    def count_collected_since(self, since_iso: str | None = None) -> int:
+        if since_iso is None:
+            return self.count()
+        return self.db.conn.execute(
+            "SELECT COUNT(*) FROM signals WHERE collected_at >= ?", (since_iso,)
+        ).fetchone()[0]
+
+    def breakdown(self, column: str, since_iso: str | None = None) -> list[dict]:
+        """Разбивка по source/category/region/demand_type: count + сумма бюджета."""
+        if column not in self._BREAKDOWN_COLUMNS:
+            raise ValueError(f"breakdown by {column!r} is not allowed")
+        where = "WHERE collected_at >= ?" if since_iso else ""
+        params = (since_iso,) if since_iso else ()
+        rows = self.db.conn.execute(
+            f"SELECT COALESCE({column}, '—') AS value, COUNT(*) AS n, "
+            f"COALESCE(SUM(budget), 0) AS budget_sum "
+            f"FROM signals {where} GROUP BY {column} ORDER BY n DESC",
+            params,
+        ).fetchall()
+        return [dict(r) for r in rows]
+
+    def list_filtered(
+        self,
+        *,
+        status: str | None = None,
+        category: str | None = None,
+        source: str | None = None,
+        region: str | None = None,
+        search: str | None = None,
+        order: str = "score",
+        limit: int = 100,
+        offset: int = 0,
+    ) -> list[DemandSignal]:
+        clauses, params = [], []
+        for column, value in (("status", status), ("category", category),
+                              ("source", source), ("region", region)):
+            if value:
+                clauses.append(f"{column} = ?")
+                params.append(value)
+        if search:
+            clauses.append("(title LIKE ? OR description LIKE ? OR customer_name LIKE ?)")
+            like = f"%{search}%"
+            params.extend([like, like, like])
+        where = f"WHERE {' AND '.join(clauses)}" if clauses else ""
+        order_sql = {"score": "score DESC", "date": "collected_at DESC",
+                     "budget": "budget DESC"}.get(order, "score DESC")
+        rows = self.db.conn.execute(
+            f"SELECT * FROM signals {where} ORDER BY {order_sql} LIMIT ? OFFSET ?",
+            (*params, limit, offset),
+        ).fetchall()
+        return [self._row_to_signal(r) for r in rows]
+
+    def get(self, dedup_key: str) -> DemandSignal | None:
+        row = self.db.conn.execute("SELECT * FROM signals WHERE dedup_key=?", (dedup_key,)).fetchone()
+        return self._row_to_signal(row) if row else None
+
+    def active_for_report(self) -> list[DemandSignal]:
+        """Актуальные заявки (не отказ) с момента запуска системы, по score."""
+        rows = self.db.conn.execute(
+            "SELECT * FROM signals WHERE status != ? ORDER BY score DESC",
+            (SignalStatus.REJECTED.value,),
+        ).fetchall()
+        return [self._row_to_signal(r) for r in rows]
+
+    def top_by_score(self, limit: int = 10, since_iso: str | None = None) -> list[DemandSignal]:
+        where = "WHERE collected_at >= ?" if since_iso else ""
+        params = (since_iso, limit) if since_iso else (limit,)
+        rows = self.db.conn.execute(
+            f"SELECT * FROM signals {where} ORDER BY score DESC LIMIT ?", params
+        ).fetchall()
+        return [self._row_to_signal(r) for r in rows]
+
     @staticmethod
     def _row_to_signal(row) -> DemandSignal:
         return DemandSignal(
