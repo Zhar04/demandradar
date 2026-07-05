@@ -1,0 +1,365 @@
+# ============================================================
+# ЕДИНЫЙ РЕЕСТР ИСТОЧНИКОВ DemandRadar.
+# Проверено вживую 2026-07-05 (Этап 0, WebFetch/curl). Поля:
+#   segment:    gov | quasi_gov | mining | commercial_etp | developer |
+#               aggregator | marketplace | search_demand | company_registry |
+#               news | jobs | real_estate
+#   demand:     formalized | latent | leading
+#   access:     api | scrape | scrape_headless | closed
+#   auth:       none | free_token | paid | account_required
+#   status:     mock | live | todo | rejected
+#   stage:      этап реализации (E1..E6), null = вне плана
+#   legal:      заметка о правилах/robots.txt
+# ============================================================
+
+sources:
+  # ---------- ФОРМАЛИЗОВАННЫЙ СПРОС ----------
+  goszakup:
+    title: "Госзакупки РК (goszakup.gov.kz)"
+    url: https://goszakup.gov.kz
+    segment: gov
+    demand: formalized
+    access: api               # GraphQL https://ows.goszakup.gov.kz/v3/graphql + REST v3
+    auth: free_token          # Bearer на 1 год; выдача через АО «ЦЭФ» (support@ecc.kz), перевыпуск в кабинете
+    status: mock              # mock до получения GOSZAKUP_TOKEN
+    stage: E1
+    priority: 1
+    notes: >
+      Токен обязателен даже для интроспекции (401 без него). Схема подтверждена по
+      graphdoc: Query.TrdBuy/Lots/Subjects(filter, limit<=200, after=lastId из
+      extensions.pageInfo). Фильтр дат: publishDate:["с","по"]. Фильтр ЕНС ТРУ только
+      у Lots (enstruList: [Int]). Резерв: HTML-поиск /ru/search/announce работает без
+      авторизации (пагинация ?count_record=50&page=N, потолок ~10000 записей).
+    legal: "Официальный открытый API (программа OpenData); скрапинг HTML-поиска публичен"
+
+  med_ecc:
+    title: "Закупки медорганизаций (med.ecc.kz)"
+    url: https://med.ecc.kz
+    segment: gov
+    demand: formalized
+    access: scrape            # серверный HTML, без SPA
+    auth: none
+    status: todo
+    stage: E4
+    priority: 1
+    notes: >
+      Поиск /ru/searchanno (фильтры: наименование, сумма, статус, регион, БИН, даты;
+      пагинация ?page=N), карточка /ru/announce/index/{id}. Прямое попадание для
+      медицинских кроватей и мед. мебели. robots.txt отсутствует (404).
+    legal: "robots.txt нет; публичные данные"
+
+  fms_ecc:
+    title: "СК-Фармация / ФСМС (fms.ecc.kz)"
+    url: https://fms.ecc.kz
+    segment: gov
+    demand: formalized
+    access: scrape
+    auth: none
+    status: todo
+    stage: E4
+    priority: 2
+    notes: "Тот же движок, что med.ecc.kz (/ru/searchanno). Объёмы меньше, включать «за компанию»."
+    legal: "robots.txt нет; публичные данные"
+
+  samruk:
+    title: "Самрук-Казына (zakup.sk.kz)"
+    url: https://zakup.sk.kz
+    segment: quasi_gov
+    demand: formalized
+    access: scrape_headless   # SPA; перспективнее реверс внутренних JSON (есть /eprocfilestorage/open-api/...)
+    auth: none
+    status: todo
+    stage: E4
+    priority: 1
+    notes: >
+      Крупнейший заказчик страны (КТЖ, Казпочта, энергетика): кровати/матрасы для
+      общежитий и вахтовок. Данные официально в открытом доступе, но рендерятся JS.
+      План: найти XHR JSON-эндпоинты (DevTools), иначе headless. Эл. магазин фонда —
+      skstore.kz (домен qazstore.kz из брифа МЁРТВ, DNS не резолвится).
+    legal: "Данные публичны (заявление skc.kz); robots.txt фактически отсутствует"
+
+  mitwork:
+    title: "ЭТП Байтерек (eep.mitwork.kz)"
+    url: https://eep.mitwork.kz
+    segment: quasi_gov
+    demand: formalized
+    access: scrape            # обычный серверный HTML!
+    auth: none
+    status: todo
+    stage: E4
+    priority: 1
+    notes: >
+      Лучший скрап-источник: /ru/publics/buys?page=N&per-page=50 (182 827 записей),
+      карточка /ru/publics/buy/{id}; есть фильтры по сумме/срокам/организатору.
+      Подтверждены мебельные лоты («Офисные кресла», 994 827 KZT).
+      Соблюдать Crawl-delay: 10 из robots.txt.
+    legal: "robots.txt: Crawl-delay 10; /publics/* не запрещены; банят SEO-ботов"
+
+  erg:
+    title: "ERG (torgi.erg.kz)"
+    url: https://torgi.erg.kz
+    segment: mining
+    demand: formalized
+    access: scrape_headless   # SPA «Loading...»; искать XHR-эндпоинты
+    auth: none
+    status: todo
+    stage: E4
+    priority: 3
+    notes: "Горно-металлургический профиль; мебель редко (общежития, АБК). Индексируется Google — данные публичны."
+    legal: "robots.txt 404"
+
+  tizilim:
+    title: "Закупки недропользователей (tizilim.gov.kz)"
+    url: https://public.tizilim.gov.kz/ru
+    segment: mining
+    demand: formalized
+    access: scrape_headless
+    auth: none
+    status: todo
+    stage: E5
+    priority: 2
+    notes: >
+      С 01.07.2025 ВСЕ закупки недропользователей (нефть/газ/уран/ГМК) только здесь
+      (заменил reestr.nadloc.kz). Вахтовые посёлки = кровати/матрасы/мебель крупными
+      лотами. SPA — нужен реверс XHR или headless. Портал молодой, структура может меняться.
+    legal: "robots.txt 404; публичная часть public.tizilim.gov.kz"
+
+  mpkz:
+    title: "ЭТП Marketplace (mp.kz)"
+    url: https://mp.kz
+    segment: commercial_etp
+    demand: formalized
+    access: scrape            # серверный HTML
+    auth: none
+    status: todo
+    stage: E4
+    priority: 1
+    notes: >
+      Крупнейшая частная B2B-ЭТП: /tenders/?category_id=15 — категория «Мебель,
+      складское оборудование»; лот /tender/{id}-slug; ~70 sitemap-файлов для
+      инкрементального обхода. Заказчики: банки, университеты. Crawl-delay 10!
+    legal: "robots.txt: Crawl-delay 10; /tenders/ не запрещён"
+
+  ets_tender:
+    title: "ЕТС-Тендер (ets-tender.kz)"
+    url: https://www.ets-tender.kz/market/
+    segment: commercial_etp
+    demand: formalized
+    access: scrape
+    auth: none
+    status: todo
+    stage: null               # после E4, если пройдём TLS-барьер
+    priority: 3
+    notes: >
+      Сервер отдаёт неполную цепочку TLS-сертификатов — нужен клиент с догрузкой
+      промежуточного серта. Публичность /market/ не подтверждена. С 2024 фокус на
+      недропользователях.
+    legal: "robots.txt получить не удалось (TLS)"
+
+  omarket:
+    title: "Электронный магазин госзакупок (omarket.kz)"
+    url: https://omarket.kz
+    segment: gov
+    demand: formalized
+    access: scrape            # через sitemap/products.xml
+    auth: none
+    status: rejected          # спрос отсюда виден в API goszakup («через электронный магазин»)
+    stage: null
+    priority: 3
+    notes: "Это витрина предложения, не спроса. Польза — дифф ассортимента конкурентов. Дублирует goszakup."
+    legal: "robots.txt: /catalog/search закрыт; sitemap открыт"
+
+  # ---------- АГРЕГАТОРЫ (сверка покрытия) ----------
+  tenderbot:
+    title: "Tenderbot.kz (агрегатор, 155+ площадок)"
+    url: https://tenderbot.kz
+    segment: aggregator
+    demand: formalized
+    access: scrape            # бесплатно; есть платный API 150 000 KZT/год (опция, НЕ используем по умолчанию)
+    auth: none
+    status: todo
+    stage: E4
+    priority: 2
+    notes: >
+      Самый дружелюбный robots.txt (явно Allow для AI-ботов, Crawl-delay 10).
+      Готовые лендинги /mebelnye-tendery, /tendery-na-postelnoe-bele; поиск
+      /lots?searchstr=... Использовать для СВЕРКИ ПОКРЫТИЯ наших коннекторов.
+      Платный API подключаем только по решению владельца.
+    legal: "robots.txt: AI-боты разрешены; Crawl-delay 10"
+
+  tenderplus:
+    title: "TenderPlus (агрегатор)"
+    url: https://tenderplus.kz
+    segment: aggregator
+    demand: formalized
+    access: scrape
+    auth: none
+    status: todo
+    stage: null
+    priority: 3
+    notes: "Категории /category/mebel открыты, но глубина без регистрации мала; robots запрещает /*? — обход поиска нежелателен. Резерв."
+    legal: "robots.txt: запрещены query-URL и карточки лотов"
+
+  adata_tenders:
+    title: "Adata.kz тендеры (tender.adata.kz)"
+    url: https://tender.adata.kz
+    segment: aggregator
+    demand: formalized
+    access: closed            # SPA + «необходимо авторизоваться»; API платный
+    auth: paid
+    status: rejected
+    stage: null
+    priority: 3
+    notes: "Без аккаунта непригоден. Основной продукт Adata — проверка контрагентов (см. enrich)."
+    legal: "закрыто авторизацией"
+
+  kazcontract:
+    title: "KazContract / закупки.kz"
+    url: https://kazcontract.kz
+    segment: aggregator
+    demand: formalized
+    access: closed
+    auth: account_required
+    status: rejected
+    stage: null
+    priority: 3
+    notes: "Поиск только после регистрации, API нет, /tenders/search таймаутит. Сервис участия, не мониторинга."
+    legal: "robots.txt: /tenders/search запрещён"
+
+  etbemp:
+    title: "ЕТБ (etbemp.kz)"
+    url: https://etbemp.kz
+    segment: commercial_etp
+    demand: formalized
+    access: closed
+    auth: paid                # 10 000 KZT/мес + 0.15% комиссии
+    status: rejected
+    stage: null
+    priority: 3
+    notes: "Списки пусты без логина; даже после входа «ТОП-10 результатов». Не подключаем."
+    legal: "закрыто авторизацией"
+
+  esauda:
+    title: "e-sauda (аукционы имущества)"
+    url: https://e-sauda.com
+    segment: commercial_etp
+    demand: formalized
+    access: scrape
+    auth: none
+    status: rejected
+    stage: null
+    priority: 3
+    notes: "Это ПРОДАЖА имущества (залоги, авто, недвижимость), а не спрос на наши товары. Не по профилю."
+    legal: "robots.txt минимальный"
+
+  # ---------- ЗАСТРОЙЩИКИ ----------
+  bnect_bi:
+    title: "BI Group закупки (bnect.pro)"
+    url: https://bnect.pro/purchases/all-offers
+    segment: developer
+    demand: formalized
+    access: scrape_headless
+    auth: none                # публичность списка для гостя не подтверждена
+    status: todo
+    stage: E5
+    priority: 2
+    notes: >
+      Домен tender.bi.group из брифа МЁРТВ (DNS). Закупки BI Group переехали в
+      экосистему Bnect (быв. BI Partners). SPA; проверить видимость офферов гостю.
+      Связать с Модулем B (watchlist застройщиков).
+    legal: "требует проверки"
+
+  # ---------- ОПЕРЕЖАЮЩИЙ СПРОС (Этап 5) ----------
+  statsnet:
+    title: "Новые компании РК (statsnet.co)"
+    url: https://statsnet.co
+    segment: company_registry
+    demand: leading
+    access: api
+    auth: free_token          # уточняется (Этап 0, агент ещё работает)
+    status: mock
+    stage: E5
+    priority: 1
+    notes: "Новые ТОО/ИП по ОКЭД+региону. Fallback: датасеты data.egov.kz (реестр БИН)."
+    legal: "официальный API"
+
+  data_egov:
+    title: "Открытые данные (data.egov.kz)"
+    url: https://data.egov.kz
+    segment: company_registry
+    demand: leading
+    access: api
+    auth: free_token          # API-ключ по бесплатной регистрации
+    status: todo
+    stage: E5
+    priority: 2
+    notes: "Датасеты: зарегистрированные юрлица, разрешения на строительство. Проверить актуальность датасетов."
+    legal: "официальные открытые данные"
+
+  news_rss:
+    title: "Деловые новости РК (RSS-пул)"
+    url: multiple
+    segment: news
+    demand: leading
+    access: api               # RSS = легальная машиночитаемая выгрузка
+    auth: none
+    status: todo
+    stage: E5
+    priority: 1
+    notes: "Ключи: «открытие», «строительство», «инвестпроект», «новый завод/ТРЦ/магазин». Рабочие URL лент уточняются."
+    legal: "RSS предназначен для чтения программами"
+
+  hh_kz:
+    title: "Вакансии hh.kz (api.hh.ru)"
+    url: https://api.hh.ru
+    segment: jobs
+    demand: leading
+    access: api
+    auth: none                # анонимно можно, токен повышает лимиты
+    status: todo
+    stage: E5
+    priority: 2
+    notes: "Для Модуля B: массовый наём в городе = скорое открытие объекта watchlist-компании."
+    legal: "официальный API"
+
+  # ---------- ЛАТЕНТНЫЙ СПРОС (Этап 6) ----------
+  wordstat:
+    title: "Яндекс Wordstat (API Директа)"
+    url: https://direct.yandex.ru
+    segment: search_demand
+    demand: latent
+    access: api
+    auth: free_token          # OAuth Яндекса; условия уточняются
+    status: mock
+    stage: E6
+    priority: 2
+    notes: "Датчик поискового спроса по регионам КЗ («кровати оптом», «стеллажи склад»...)."
+    legal: "официальный API"
+
+  satu:
+    title: "satu.kz (маркетплейс B2B)"
+    url: https://satu.kz
+    segment: marketplace
+    demand: latent
+    access: api               # уточняется
+    auth: free_token
+    status: todo
+    stage: E6
+    priority: 3
+    notes: "Условия API уточняются (агент Этапа 0)."
+    legal: "уточняется"
+
+  krisha:
+    title: "krisha.kz (коммерческая недвижимость, Модуль A)"
+    url: https://krisha.kz
+    segment: real_estate
+    demand: leading
+    access: scrape            # ТОЧЕЧНЫЙ ассистент по ссылке/ID, НЕ массовый скрапер
+    auth: none
+    status: todo
+    stage: E6
+    priority: 2
+    notes: >
+      Модуль A: точечный разбор конкретного объявления по URL для реферальной
+      программы. Массовый обход НЕ делаем (правила площадки). Статус уточняется.
+    legal: "массовый парсинг запрещён правилами — только точечный ассистент"
